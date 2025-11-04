@@ -24,11 +24,11 @@ data "garage_bucket" "by_id" {
 # Use data source output
 output "bucket_info" {
   value = {
-    id                = data.garage_bucket.by_alias.id
-    aliases           = data.garage_bucket.by_alias.global_aliases
-    website_enabled   = data.garage_bucket.by_alias.website_enabled
-    objects           = data.garage_bucket.by_alias.objects
-    bytes             = data.garage_bucket.by_alias.bytes
+    id                 = data.garage_bucket.by_alias.id
+    aliases            = data.garage_bucket.by_alias.global_aliases
+    website_enabled    = data.garage_bucket.by_alias.website_enabled
+    objects            = data.garage_bucket.by_alias.objects
+    bytes              = data.garage_bucket.by_alias.bytes
     unfinished_uploads = data.garage_bucket.by_alias.unfinished_uploads
   }
 }
