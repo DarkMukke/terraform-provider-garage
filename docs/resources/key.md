@@ -51,12 +51,9 @@ output "secret_access_key" {
 
 ### Optional
 
+- `id` (String) The access key ID. If not provided, one will be generated.
 - `name` (String) A human-friendly name for the access key.
-
-### Read-Only
-
-- `id` (String) The access key ID.
-- `secret_access_key` (String, Sensitive) The secret access key (only available on creation).
+- `secret_access_key` (String, Sensitive) The secret access key. If not provided, one will be generated (only available on creation).
 
 ## Import
 
