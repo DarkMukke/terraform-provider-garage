@@ -190,9 +190,16 @@ Manages a Garage access key for S3 API authentication.
 **Example Usage:**
 
 ```hcl
-# Create an access key
+# Create an auto-generated access key
 resource "garage_key" "app" {
   name = "my-application"
+}
+
+# Import a key with predefined credentials
+resource "garage_key" "imported" {
+  id                = "GK31c2f218a2e44f485b94239e"
+  secret_access_key = "7d37d093435a75809f8f090b072de87928d1c355db9d9340431b28e776374705"
+  name              = "imported-key"
 }
 
 # Output credentials (use caution with secrets!)
@@ -208,14 +215,20 @@ output "secret_access_key" {
 
 **Schema:**
 
+- `id` (Optional, String) - The access key ID. If provided along with `secret_access_key`, the key will be imported with predefined credentials. If not provided, one will be generated. Changing this forces a new resource.
 - `name` (Optional, String) - A human-friendly name for the access key
+- `secret_access_key` (Optional, String, Sensitive) - The secret access key. If provided along with `id`, the key will be imported with predefined credentials. If not provided, one will be generated. Changing this forces a new resource.
 
 **Computed Attributes:**
 
-- `id` (String) - The access key ID
-- `secret_access_key` (String, Sensitive) - The secret access key (only available on creation)
+- `id` (String) - The access key ID (computed when not provided)
+- `secret_access_key` (String, Sensitive) - The secret access key (computed when not provided, only available on creation)
 
-**Note:** The secret access key is only returned when the key is created. It's not available via the API after creation, so it won't be populated when importing an existing key.
+**Important Notes:**
+- **Importing Keys**: To import a key with predefined credentials, both `id` and `secret_access_key` must be provided together. Providing only one will result in an error.
+- **Auto-generation**: When neither `id` nor `secret_access_key` are provided, Garage will automatically generate both values.
+- **Secret Availability**: The secret access key is only returned when the key is created. It's not available via the API after creation, so it won't be populated when using Terraform's `import` command to import an existing key.
+- **Immutability**: Both `id` and `secret_access_key` are immutable. Changing either value will force the creation of a new resource.
 
 #### `garage_bucket_permission`
 
