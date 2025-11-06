@@ -136,6 +136,13 @@ type CreateKeyRequest struct {
 	Expiration *string `json:"expiration,omitempty"`
 }
 
+// ImportKeyRequest represents the request to import an access key.
+type ImportKeyRequest struct {
+	AccessKeyID     string  `json:"accessKeyId"`
+	SecretAccessKey string  `json:"secretAccessKey"`
+	Name            *string `json:"name,omitempty"`
+}
+
 // DeleteKeyRequest represents the request to delete an access key.
 type DeleteKeyRequest struct {
 	ID string `json:"id"`
@@ -378,6 +385,27 @@ func (c *Client) DenyBucketKey(ctx context.Context, req BucketKeyPermRequest) (*
 // CreateKey creates a new access key.
 func (c *Client) CreateKey(ctx context.Context, req CreateKeyRequest) (*AccessKey, error) {
 	resp, err := c.doRequest(ctx, http.MethodPost, "/v2/CreateKey", req)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK && resp.StatusCode != http.StatusCreated {
+		body, _ := io.ReadAll(resp.Body)
+		return nil, fmt.Errorf("API request failed with status %d: %s", resp.StatusCode, string(body))
+	}
+
+	var key AccessKey
+	if err := json.NewDecoder(resp.Body).Decode(&key); err != nil {
+		return nil, fmt.Errorf("failed to decode response: %w", err)
+	}
+
+	return &key, nil
+}
+
+// ImportKey imports an existing access key with predefined credentials.
+func (c *Client) ImportKey(ctx context.Context, req ImportKeyRequest) (*AccessKey, error) {
+	resp, err := c.doRequest(ctx, http.MethodPost, "/v2/ImportKey", req)
 	if err != nil {
 		return nil, err
 	}
