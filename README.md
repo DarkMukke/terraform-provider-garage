@@ -1,6 +1,10 @@
 # Terraform Provider for Garage
 
 This is a Terraform provider for managing [Garage](https://garagehq.deuxfleurs.fr/) S3 buckets via the Garage Admin API.
+I forked this from [jkossis](https://github.com/jkossis/), so all credit to them. 
+I simply modified it so it can also store and retrieve S3 objects just like the AWS equivalent.
+
+
 
 Garage is an S3-compatible distributed object storage service designed for self-hosting at a small-to-medium scale. This provider allows you to manage Garage buckets declaratively using Terraform.
 
@@ -44,7 +48,7 @@ Create or edit `~/.terraformrc`:
 ```hcl
 provider_installation {
   dev_overrides {
-    "jkossis/garage" = "/path/to/terraform-provider-garage"
+    "darkmukke/garage" = "/path/to/terraform-provider-garage"
   }
 
   direct {}
@@ -70,7 +74,7 @@ Create a file named `main.tf`:
 terraform {
   required_providers {
     garage = {
-      source = "jkossis/garage"
+      source = "darkmukke/garage"
     }
   }
 }
@@ -350,7 +354,7 @@ Check out the [examples](./examples/) directory for more configurations:
 
 ### "Provider not found" error
 
-If you see an error like "provider registry.terraform.io/jkossis/garage not found", make sure:
+If you see an error like "provider registry.terraform.io/darkmukke/garage not found", make sure:
 
 1. You've set up the dev overrides in `~/.terraformrc` correctly
 2. The path in dev overrides points to the directory containing the built binary

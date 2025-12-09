@@ -127,7 +127,7 @@ func TestAccBucketPermissionResource_multipleKeys(t *testing.T) {
 // Test configuration functions
 
 func testAccBucketPermissionResourceConfig_basic(bucketName, keyName string, read, write, owner bool) string {
-	return fmt.Sprintf(`
+	return testAccProviderConfig() + fmt.Sprintf(`
 resource "garage_bucket" "test" {
   global_alias = %[1]q
 }
@@ -147,7 +147,7 @@ resource "garage_bucket_permission" "test" {
 }
 
 func testAccBucketPermissionResourceConfig_multiple(bucketName, key1Name, key2Name string) string {
-	return fmt.Sprintf(`
+	return testAccProviderConfig() + fmt.Sprintf(`
 resource "garage_bucket" "test" {
   global_alias = %[1]q
 }

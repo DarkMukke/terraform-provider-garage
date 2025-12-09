@@ -132,7 +132,7 @@ func TestAccBucketDataSource_multipleAliases(t *testing.T) {
 // Test configuration functions
 
 func testAccBucketDataSourceConfig_byAlias(name string) string {
-	return fmt.Sprintf(`
+	return testAccProviderConfig() + fmt.Sprintf(`
 resource "garage_bucket" "source" {
   global_alias = %[1]q
 }
@@ -144,7 +144,7 @@ data "garage_bucket" "test" {
 }
 
 func testAccBucketDataSourceConfig_byID(name string) string {
-	return fmt.Sprintf(`
+	return testAccProviderConfig() + fmt.Sprintf(`
 resource "garage_bucket" "source" {
   global_alias = %[1]q
 }
@@ -156,7 +156,7 @@ data "garage_bucket" "test" {
 }
 
 func testAccBucketDataSourceConfig_withWebsite(name string) string {
-	return fmt.Sprintf(`
+	return testAccProviderConfig() + fmt.Sprintf(`
 resource "garage_bucket" "source" {
   global_alias           = %[1]q
   website_enabled        = true
@@ -171,7 +171,7 @@ data "garage_bucket" "test" {
 }
 
 func testAccBucketDataSourceConfig_withQuotas(name string) string {
-	return fmt.Sprintf(`
+	return testAccProviderConfig() + fmt.Sprintf(`
 resource "garage_bucket" "source" {
   global_alias = %[1]q
   max_size     = 1073741824
@@ -185,7 +185,7 @@ data "garage_bucket" "test" {
 }
 
 func testAccBucketDataSourceConfig_full(name string) string {
-	return fmt.Sprintf(`
+	return testAccProviderConfig() + fmt.Sprintf(`
 resource "garage_bucket" "source" {
   global_alias           = %[1]q
   website_enabled        = true

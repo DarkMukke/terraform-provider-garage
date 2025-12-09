@@ -173,7 +173,7 @@ func TestAccBucketResource_nameChange(t *testing.T) {
 // Test configuration functions
 
 func testAccBucketResourceConfig_basic(name string) string {
-	return fmt.Sprintf(`
+	return testAccProviderConfig() + fmt.Sprintf(`
 resource "garage_bucket" "test" {
   global_alias = %[1]q
 }
@@ -181,7 +181,7 @@ resource "garage_bucket" "test" {
 }
 
 func testAccBucketResourceConfig_website(name string, enabled bool, indexDoc, errorDoc string) string {
-	config := fmt.Sprintf(`
+	config := testAccProviderConfig() + fmt.Sprintf(`
 resource "garage_bucket" "test" {
   global_alias    = %[1]q
   website_enabled = %[2]t
@@ -202,7 +202,7 @@ resource "garage_bucket" "test" {
 }
 
 func testAccBucketResourceConfig_quotas(name string, maxSize, maxObjects int) string {
-	return fmt.Sprintf(`
+	return testAccProviderConfig() + fmt.Sprintf(`
 resource "garage_bucket" "test" {
   global_alias = %[1]q
   max_size     = %[2]d
@@ -212,7 +212,7 @@ resource "garage_bucket" "test" {
 }
 
 func testAccBucketResourceConfig_full(name string, websiteEnabled bool, indexDoc, errorDoc string, maxSize, maxObjects int) string {
-	return fmt.Sprintf(`
+	return testAccProviderConfig() + fmt.Sprintf(`
 resource "garage_bucket" "test" {
   global_alias           = %[1]q
   website_enabled        = %[2]t

@@ -6,6 +6,7 @@ package provider
 import (
 	"context"
 	"os"
+	"strings"
 
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/ephemeral"
@@ -14,8 +15,6 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/provider/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/types"
-
-	"terraform-provider-garage/internal/client"
 )
 
 // Ensure GarageProvider satisfies various provider interfaces.
@@ -33,8 +32,19 @@ type GarageProvider struct {
 
 // GarageProviderModel describes the provider data model.
 type GarageProviderModel struct {
-	Endpoint types.String `tfsdk:"endpoint"`
+	Endpoint types.String `tfsdk:"endpoint"` // deprecated, for objects we can't use the admin endpoint
 	Token    types.String `tfsdk:"token"`
+
+	// new structure takes an object for both admin and s3 endpoints
+	Endpoints *EndpointsModel `tfsdk:"endpoints"`
+	//access keys are needed for s3
+	AccessKey types.String `tfsdk:"access_key"`
+	SecretKey types.String `tfsdk:"secret_key"`
+}
+
+type EndpointsModel struct {
+	Admin types.String `tfsdk:"admin"`
+	S3    types.String `tfsdk:"s3"`
 }
 
 func (p *GarageProvider) Metadata(ctx context.Context, req provider.MetadataRequest, resp *provider.MetadataResponse) {
@@ -44,68 +54,112 @@ func (p *GarageProvider) Metadata(ctx context.Context, req provider.MetadataRequ
 
 func (p *GarageProvider) Schema(ctx context.Context, req provider.SchemaRequest, resp *provider.SchemaResponse) {
 	resp.Schema = schema.Schema{
-		MarkdownDescription: "Terraform provider for managing Garage S3 buckets via the Garage Admin API.",
+		Description: "Terraform provider for managing Garage S3 buckets and objects",
 		Attributes: map[string]schema.Attribute{
 			"endpoint": schema.StringAttribute{
-				MarkdownDescription: "The Garage Admin API endpoint URL. Can also be set via the GARAGE_ENDPOINT environment variable.",
-				Optional:            true,
+				Optional:           true,
+				DeprecationMessage: "Use 'endpoints' block instead. This attribute will be removed in version 2.0.0",
+				Description:        "(Deprecated) Admin API endpoint. Use 'endpoints.admin' instead.",
 			},
 			"token": schema.StringAttribute{
-				MarkdownDescription: "The Garage Admin API bearer token. Can also be set via the GARAGE_TOKEN environment variable.",
-				Optional:            true,
-				Sensitive:           true,
+				Optional:    true,
+				Sensitive:   true,
+				Description: "Admin API token for Garage cluster management",
+			},
+			"access_key": schema.StringAttribute{
+				Optional:    true,
+				Sensitive:   true,
+				Description: "S3 access key for object operations. Can also be set via GARAGE_ACCESS_KEY environment variable",
+			},
+			"secret_key": schema.StringAttribute{
+				Optional:    true,
+				Sensitive:   true,
+				Description: "S3 secret key for object operations. Can also be set via GARAGE_SECRET_KEY environment variable",
+			},
+		},
+		Blocks: map[string]schema.Block{
+			"endpoints": schema.SingleNestedBlock{ //
+				Description: "Garage API endpoints configuration",
+				Attributes: map[string]schema.Attribute{
+					"admin": schema.StringAttribute{
+						Optional:    true,
+						Description: "Admin API endpoint (e.g., 'http://localhost:3903')",
+					},
+					"s3": schema.StringAttribute{
+						Optional:    true,
+						Description: "S3 API endpoint (e.g., 'http://localhost:3900')",
+					},
+				},
 			},
 		},
 	}
 }
 
 func (p *GarageProvider) Configure(ctx context.Context, req provider.ConfigureRequest, resp *provider.ConfigureResponse) {
-	var data GarageProviderModel
-
-	resp.Diagnostics.Append(req.Config.Get(ctx, &data)...)
-
+	var config GarageProviderModel
+	diags := req.Config.Get(ctx, &config)
+	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
 
-	// Check for environment variables if not set in config
-	endpoint := data.Endpoint.ValueString()
-	if endpoint == "" {
-		endpoint = os.Getenv("GARAGE_ENDPOINT")
+	// Handle backwards compatibility
+	var adminEndpoint, s3Endpoint string
+
+	if config.Endpoints != nil {
+		// New endpoints block takes precedence
+		if !config.Endpoints.Admin.IsNull() {
+			adminEndpoint = config.Endpoints.Admin.ValueString()
+		}
+		if !config.Endpoints.S3.IsNull() {
+			s3Endpoint = config.Endpoints.S3.ValueString()
+		}
 	}
 
-	token := data.Token.ValueString()
-	if token == "" {
-		token = os.Getenv("GARAGE_TOKEN")
+	// Fall back to deprecated 'endpoint' attribute if endpoints block not used
+	if adminEndpoint == "" && !config.Endpoint.IsNull() {
+		adminEndpoint = config.Endpoint.ValueString()
+		// If using old config, default S3 to port 3900 on same host
+		if s3Endpoint == "" {
+			// Simple heuristic: replace 3903 with 3900
+			s3Endpoint = replacePort(adminEndpoint, "3903", "3900")
+		}
 	}
 
-	// Validate required configuration
-	if endpoint == "" {
+	// Environment variable fallback for S3 credentials
+	accessKey := config.AccessKey.ValueString()
+	if accessKey == "" {
+		accessKey = os.Getenv("GARAGE_ACCESS_KEY")
+	}
+
+	secretKey := config.SecretKey.ValueString()
+	if secretKey == "" {
+		secretKey = os.Getenv("GARAGE_SECRET_KEY")
+	}
+
+	// Validation
+	if adminEndpoint == "" {
 		resp.Diagnostics.AddError(
-			"Missing Garage Endpoint",
-			"The provider cannot create the Garage API client as there is a missing or empty value for the Garage endpoint. "+
-				"Set the endpoint value in the configuration or use the GARAGE_ENDPOINT environment variable. "+
-				"If either is already set, ensure the value is not empty.",
+			"Missing Admin Endpoint",
+			"Either 'endpoints.admin' or deprecated 'endpoint' must be configured",
 		)
-	}
-
-	if token == "" {
-		resp.Diagnostics.AddError(
-			"Missing Garage Token",
-			"The provider cannot create the Garage API client as there is a missing or empty value for the Garage admin token. "+
-				"Set the token value in the configuration or use the GARAGE_TOKEN environment variable. "+
-				"If either is already set, ensure the value is not empty.",
-		)
-	}
-
-	if resp.Diagnostics.HasError() {
 		return
 	}
 
-	// Create Garage API client
-	garageClient := client.NewClient(endpoint, token)
-	resp.DataSourceData = garageClient
-	resp.ResourceData = garageClient
+	// Store in provider data with both endpoints
+	providerData := &GarageProviderModel{
+		Endpoint:  types.StringValue(adminEndpoint),
+		Token:     config.Token,
+		AccessKey: types.StringValue(accessKey),
+		SecretKey: types.StringValue(secretKey),
+		Endpoints: &EndpointsModel{
+			Admin: types.StringValue(adminEndpoint),
+			S3:    types.StringValue(s3Endpoint),
+		},
+	}
+
+	resp.DataSourceData = providerData
+	resp.ResourceData = providerData
 }
 
 func (p *GarageProvider) Resources(ctx context.Context) []func() resource.Resource {
@@ -113,6 +167,7 @@ func (p *GarageProvider) Resources(ctx context.Context) []func() resource.Resour
 		NewBucketResource,
 		NewBucketPermissionResource,
 		NewKeyResource,
+		NewGarageObjectResource,
 	}
 }
 
@@ -123,6 +178,7 @@ func (p *GarageProvider) EphemeralResources(ctx context.Context) []func() epheme
 func (p *GarageProvider) DataSources(ctx context.Context) []func() datasource.DataSource {
 	return []func() datasource.DataSource{
 		NewBucketDataSource,
+		NewGarageObjectDataSource,
 	}
 }
 
@@ -136,4 +192,10 @@ func New(version string) func() provider.Provider {
 			version: version,
 		}
 	}
+}
+
+// Helper function to replace port in endpoint URL.
+func replacePort(endpoint, oldPort, newPort string) string {
+	// Simple string replacement - you may want more robust URL parsing
+	return strings.Replace(endpoint, ":"+oldPort, ":"+newPort, 1)
 }
