@@ -2,19 +2,23 @@ package provider
 
 import (
 	"context"
+	"fmt"
 	"io"
 	"os"
+	"strings"
 	"unsafe"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/credentials"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
+	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 )
 
 var _ resource.Resource = &GarageObjectResource{}
+var _ resource.ResourceWithImportState = &GarageObjectResource{}
 
 type GarageObjectResource struct {
 	s3Client *s3.Client
@@ -142,7 +146,7 @@ func (r *GarageObjectResource) Create(ctx context.Context, req resource.CreateRe
 			contentType = plan.ContentType.ValueString()
 		}
 	} else if !plan.Content.IsNull() {
-		body = io.NopCloser(io.Reader(nil))
+		body = strings.NewReader(plan.Content.ValueString())
 		if plan.ContentType.IsNull() {
 			contentType = "text/plain"
 		} else {
@@ -223,4 +227,26 @@ func (r *GarageObjectResource) Delete(ctx context.Context, req resource.DeleteRe
 		resp.Diagnostics.AddError("Object Deletion Failed", err.Error())
 		return
 	}
+}
+
+func (r *GarageObjectResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
+	// Import format: bucket/key (same as AWS provider)
+	// Supports keys with slashes by treating everything after first / as the key
+	parts := strings.SplitN(req.ID, "/", 2)
+
+	if len(parts) != 2 {
+		resp.Diagnostics.AddError(
+			"Invalid Import ID",
+			fmt.Sprintf("Expected import ID in format 'bucket/key', got: %s", req.ID),
+		)
+		return
+	}
+
+	bucket := parts[0]
+	key := parts[1]
+
+	// Set the state attributes
+	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("bucket"), bucket)...)
+	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("key"), key)...)
+	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("id"), req.ID)...)
 }

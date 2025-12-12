@@ -2,6 +2,7 @@ package provider
 
 import (
 	"fmt"
+	"os"
 	"testing"
 
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
@@ -40,15 +41,29 @@ func TestAccGarageObjectResource(t *testing.T) {
 
 func testAccGarageObjectResourceConfig(content string) string {
 	return testAccProviderConfig() + fmt.Sprintf(`
-resource "garage_bucket" "test" {
-  global_alias = "test-bucket-object"
-}
+		resource "garage_bucket" "test" {
+			global_alias = "test-bucket-object"
+		}
+		
+		resource "garage_bucket_permission" "test" {
+			bucket_id = garage_bucket.test.id
+			access_key_id = %[2]q
+			
+			read  = true
+			write = true
+			owner = false
+		}
+		
+		resource "garage_object" "test" {
+			depends_on = [garage_bucket_permission.test]
 
-resource "garage_object" "test" {
-  bucket       = garage_bucket.test.id
-  key          = "test-object.txt"
-  content      = %[1]q
-  content_type = "text/plain"
-}
-`, content)
+			bucket       = garage_bucket.test.id
+			key          = "test-object.txt"
+			content      = %[1]q
+			content_type = "text/plain"
+			
+			
+		}
+		`, content, os.Getenv("GARAGE_ACCESS_KEY"),
+	)
 }

@@ -30,10 +30,6 @@ func testAccPreCheck(t *testing.T) {
 	if v := os.Getenv("GARAGE_ADMIN_ENDPOINT"); v == "" {
 		t.Fatal("GARAGE_ADMIN_ENDPOINT must be set for acceptance tests")
 	}
-
-	if v := os.Getenv("GARAGE_TOKEN"); v == "" {
-		t.Fatal("GARAGE_TOKEN must be set for acceptance tests")
-	}
 }
 
 func testAccPreCheckS3(t *testing.T) {
@@ -57,7 +53,7 @@ func testAccPreCheckS3(t *testing.T) {
 func testAccProviderConfig() string {
 	return `
 provider "garage" {
-  endpoints = {
+  endpoints {
     admin = "` + os.Getenv("GARAGE_ADMIN_ENDPOINT") + `"
     s3    = "` + os.Getenv("GARAGE_S3_ENDPOINT") + `"
   }
