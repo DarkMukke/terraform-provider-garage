@@ -59,11 +59,14 @@ Replace `/path/to/terraform-provider-garage` with the actual path to your reposi
 
 ### 3. Configure Your Environment
 
-Set your Garage endpoint and token:
+Set your Garage endpoints and credentials (Admin API + S3):
 
 ```bash
-export GARAGE_ENDPOINT="http://localhost:3903"
-export GARAGE_TOKEN="your-admin-token-here"
+export GARAGE_ADMIN_ENDPOINT="http://localhost:3903"   # Admin API
+export GARAGE_S3_ENDPOINT="http://localhost:3900"      # S3 API
+export GARAGE_TOKEN="your-admin-token-here"            # Admin token
+export GARAGE_ACCESS_KEY="GK123..."                    # S3 access key
+export GARAGE_SECRET_KEY="secret123..."                # S3 secret key
 ```
 
 ### 4. Create Your First Configuration
@@ -80,7 +83,14 @@ terraform {
 }
 
 provider "garage" {
-  # endpoint and token will be read from environment variables
+  # Will read from the environment variables set above
+  endpoints = {
+    admin = var.admin_endpoint != null ? var.admin_endpoint : null
+    s3    = var.s3_endpoint != null ? var.s3_endpoint : null
+  }
+  token      = var.token != null ? var.token : null
+  access_key = var.access_key != null ? var.access_key : null
+  secret_key = var.secret_key != null ? var.secret_key : null
 }
 
 resource "garage_bucket" "example" {
@@ -112,36 +122,40 @@ terraform destroy
 
 ### Configuration
 
-The provider requires two configuration values:
+Preferred configuration uses the `endpoints` block and supports both Admin and S3 APIs:
 
-- `endpoint` - The URL of your Garage Admin API endpoint (default port: 3903)
-- `token` - Your Garage admin API bearer token
+- `endpoints.admin` - Admin API endpoint (default port: 3903)
+- `endpoints.s3` - S3 API endpoint (default port: 3900)
+- `token` - Admin API bearer token (for managing buckets, keys, permissions)
+- `access_key` - S3 access key (for object operations)
+- `secret_key` - S3 secret key (for object operations)
 
-These can be configured in three ways:
+Note: The top-level `endpoint` attribute is deprecated in favor of `endpoints.admin`.
+
+You can configure these in two ways:
 
 #### 1. In the provider block:
 
 ```hcl
 provider "garage" {
-  endpoint = "http://localhost:3903"
-  token    = "your-admin-token-here"
+  endpoints = {
+    admin = "http://localhost:3903"
+    s3    = "http://localhost:3900"
+  }
+  token      = "your-admin-token-here"
+  access_key = "GK123..."
+  secret_key = "secret123..."
 }
 ```
 
 #### 2. Via environment variables:
 
 ```bash
-export GARAGE_ENDPOINT="http://localhost:3903"
+export GARAGE_ADMIN_ENDPOINT="http://localhost:3903"
+export GARAGE_S3_ENDPOINT="http://localhost:3900"
 export GARAGE_TOKEN="your-admin-token-here"
-```
-
-#### 3. Mixed approach (environment variables override provider config):
-
-```hcl
-provider "garage" {
-  endpoint = "http://localhost:3903"
-  # token will be read from GARAGE_TOKEN environment variable
-}
+export GARAGE_ACCESS_KEY="GK123..."
+export GARAGE_SECRET_KEY="secret123..."
 ```
 
 ### Resources
@@ -290,6 +304,42 @@ resource "garage_bucket_permission" "readonly_access" {
 - **Write**: Upload objects, delete objects, modify metadata
 - **Owner**: All read/write operations plus bucket management and permission grants
 
+#### `garage_object`
+
+Manages an object stored in a Garage bucket.
+
+**Example Usage:**
+
+```hcl
+# Store a small text object with literal content
+resource "garage_object" "hello" {
+  bucket       = garage_bucket.example.id
+  key          = "hello.txt"
+  content      = "Hello, Garage!"
+  content_type = "text/plain"
+}
+
+# Upload a file from disk
+resource "garage_object" "config" {
+  bucket = garage_bucket.example.id
+  key    = "config.json"
+  source = "${path.module}/config.json"
+}
+```
+
+**Schema:**
+
+- `bucket` (Required, String) - Name/ID of the bucket that will contain the object. Changing this forces a new resource.
+- `key` (Required, String) - The object key (path/name) inside the bucket. Changing this forces a new resource.
+- `content` (Optional, String, Sensitive) - Literal string to be used as the object content.
+- `content_type` (Optional, String) - MIME type for the object.
+- `source` (Optional, String) - Path to a local file to upload as the object.
+
+**Computed Attributes:**
+
+- `id` (String) - Unique identifier of the object (`bucket/key`)
+- `etag` (String) - ETag returned by Garage for the uploaded object
+
 ### Data Sources
 
 #### `garage_bucket`
@@ -340,6 +390,51 @@ Either `id` or `global_alias` must be specified.
 - `bytes` (Int64) - Current size of the bucket in bytes
 - `unfinished_uploads` (Int64) - Number of unfinished multipart uploads
 
+#### `garage_object`
+
+Retrieves an existing object from a Garage bucket.
+
+**Example Usage:**
+
+```hcl
+# Read a JSON file from a bucket
+data "garage_object" "config" {
+  bucket = "my-bucket"
+  key    = "config.json"
+}
+
+# Use the downloaded body (text content)
+output "config_content" {
+  value = jsondecode(data.garage_object.config.body)
+}
+
+# Expose some metadata
+output "object_info" {
+  value = {
+    size         = data.garage_object.config.content_length
+    content_type = data.garage_object.config.content_type
+    etag         = data.garage_object.config.etag
+    modified     = data.garage_object.config.last_modified
+  }
+}
+```
+
+**Schema:**
+
+- `bucket` (Required, String) - Name/ID of the bucket that contains the object
+- `key` (Required, String) - Key (path/name) of the object in the bucket
+
+**Computed Attributes:**
+
+- `id` (String) - Unique identifier of the object (`bucket/key`)
+- `body` (String, Sensitive) - Object content as a string (use for text files)
+- `etag` (String) - ETag of the object
+- `content_type` (String) - MIME type of the object
+- `content_length` (Number) - Size of the object in bytes
+- `last_modified` (String) - Last modification timestamp
+- `metadata` (Map of String) - User-defined metadata
+- `version_id` (String) - Version ID (if versioning enabled)
+
 ## Examples
 
 Check out the [examples](./examples/) directory for more configurations:
@@ -349,6 +444,8 @@ Check out the [examples](./examples/) directory for more configurations:
 - [Access Key Resource Examples](./examples/resources/garage_key/resource.tf)
 - [Bucket Permission Resource Examples](./examples/resources/garage_bucket_permission/resource.tf)
 - [Bucket Data Source Examples](./examples/data-sources/garage_bucket/data-source.tf)
+ - [Object Resource Examples](./examples/resources/garage_object/resource.tf)
+ - [Object Data Source Examples](./examples/data-sources/garage_object/data-source.tf)
 
 ## Troubleshooting
 
@@ -392,8 +489,12 @@ To run the full suite of acceptance tests, you'll need a running Garage instance
 Set up your test environment:
 
 ```bash
-export GARAGE_ENDPOINT="http://localhost:3903"
+export TF_ACC=1
+export GARAGE_ADMIN_ENDPOINT="http://localhost:3903"   # Admin API
+export GARAGE_S3_ENDPOINT="http://localhost:3900"      # S3 API
 export GARAGE_TOKEN="your-test-admin-token"
+export GARAGE_ACCESS_KEY="GK123..."
+export GARAGE_SECRET_KEY="secret123..."
 ```
 
 Then run the tests:
