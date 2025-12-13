@@ -244,7 +244,7 @@ func TestAccKeyResource_changesRequireReplacement(t *testing.T) {
 // Test configuration functions
 
 func testAccKeyResourceConfig_basic(name string) string {
-	return fmt.Sprintf(`
+	return testAccProviderConfig() + fmt.Sprintf(`
 resource "garage_key" "test" {
   name = %[1]q
 }
@@ -252,14 +252,14 @@ resource "garage_key" "test" {
 }
 
 func testAccKeyResourceConfig_noName() string {
-	return `
+	return testAccProviderConfig() + `
 resource "garage_key" "test" {
 }
 `
 }
 
 func testAccKeyResourceConfig_multiple(name1, name2 string) string {
-	return fmt.Sprintf(`
+	return testAccProviderConfig() + fmt.Sprintf(`
 resource "garage_key" "test1" {
   name = %[1]q
 }
@@ -271,7 +271,7 @@ resource "garage_key" "test2" {
 }
 
 func testAccKeyResourceConfig_withBucket(keyName, bucketName string) string {
-	return fmt.Sprintf(`
+	return testAccProviderConfig() + fmt.Sprintf(`
 resource "garage_key" "test" {
   name = %[1]q
 }
@@ -291,7 +291,7 @@ resource "garage_bucket_permission" "test" {
 }
 
 func testAccKeyResourceConfig_import(id, secret, name string) string {
-	return fmt.Sprintf(`
+	return testAccProviderConfig() + fmt.Sprintf(`
 resource "garage_key" "test" {
   id                = %[1]q
   secret_access_key = %[2]q
@@ -301,7 +301,7 @@ resource "garage_key" "test" {
 }
 
 func testAccKeyResourceConfig_importNoName(id, secret string) string {
-	return fmt.Sprintf(`
+	return testAccProviderConfig() + fmt.Sprintf(`
 resource "garage_key" "test" {
   id                = %[1]q
   secret_access_key = %[2]q
@@ -310,7 +310,7 @@ resource "garage_key" "test" {
 }
 
 func testAccKeyResourceConfig_onlyID(id string) string {
-	return fmt.Sprintf(`
+	return testAccProviderConfig() + fmt.Sprintf(`
 resource "garage_key" "test" {
   id = %[1]q
 }

@@ -16,7 +16,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 
-	"terraform-provider-garage/internal/client"
+	"github.com/DarkMukke/terraform-provider-garage/internal/client"
 )
 
 // Ensure provider defined types fully satisfy framework interfaces.
@@ -99,18 +99,33 @@ func (r *BucketPermissionResource) Configure(ctx context.Context, req resource.C
 		return
 	}
 
-	client, ok := req.ProviderData.(*client.Client)
-
+	providerData, ok := req.ProviderData.(*GarageProviderModel)
 	if !ok {
 		resp.Diagnostics.AddError(
 			"Unexpected Resource Configure Type",
-			fmt.Sprintf("Expected *client.Client, got: %T. Please report this issue to the provider developers.", req.ProviderData),
+			fmt.Sprintf("Expected *GarageProviderModel, got: %T. Please report this issue to the provider developers.", req.ProviderData),
 		)
-
 		return
 	}
 
-	r.client = client
+	// Get admin endpoint with backwards compatibility
+	adminEndpoint := ""
+	if providerData.Endpoints != nil && !providerData.Endpoints.Admin.IsNull() {
+		adminEndpoint = providerData.Endpoints.Admin.ValueString()
+	} else if !providerData.Endpoint.IsNull() {
+		// Fallback to deprecated endpoint
+		adminEndpoint = providerData.Endpoint.ValueString()
+	}
+
+	if adminEndpoint == "" {
+		resp.Diagnostics.AddError(
+			"Missing Admin Endpoint",
+			"Admin endpoint must be configured via 'endpoints.admin' or deprecated 'endpoint' attribute",
+		)
+		return
+	}
+
+	r.client = client.NewClient(adminEndpoint, providerData.Token.ValueString())
 }
 
 func (r *BucketPermissionResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {

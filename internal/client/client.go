@@ -169,7 +169,10 @@ func (c *Client) doRequest(ctx context.Context, method, path string, body interf
 		return nil, fmt.Errorf("failed to create request: %w", err)
 	}
 
-	req.Header.Set("Authorization", "Bearer "+c.token)
+	// Only add Authorization header if token is not empty
+	if c.token != "" {
+		req.Header.Set("Authorization", "Bearer "+c.token)
+	}
 	req.Header.Set("Content-Type", "application/json")
 
 	resp, err := c.httpClient.Do(req)
