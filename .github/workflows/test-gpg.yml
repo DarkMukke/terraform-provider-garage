@@ -1,0 +1,30 @@
+name: Test GPG Key
+
+on:
+  workflow_dispatch:  # Manual trigger
+
+jobs:
+  test-gpg:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Import GPG key
+        uses: crazy-max/ghaction-import-gpg@v6
+        id: import_gpg
+        with:
+          gpg_private_key: ${{ secrets.GPG_PRIVATE_KEY }}
+          passphrase: ${{ secrets.PASSPHRASE }}
+      
+      - name: List imported keys
+        run: gpg -K
+      
+      - name: Test GPG signing
+        run: |
+          echo "test" | gpg --clearsign --local-user ${{ steps.import_gpg.outputs.fingerprint }}
+          echo "✅ GPG key successfully imported and can sign!"
+      
+      - name: Display fingerprint
+        run: |
+          echo "GPG Fingerprint: ${{ steps.import_gpg.outputs.fingerprint }}"
+          echo "Key ID: ${{ steps.import_gpg.outputs.keyid }}"
