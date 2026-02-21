@@ -133,12 +133,8 @@ func (r *GarageObjectResource) Create(ctx context.Context, req resource.CreateRe
 			return
 		}
 		defer func(file *os.File) {
-			err := file.Close()
-			if err != nil {
-
-			}
+			_ = file.Close()
 		}(file)
-		body = file
 
 		if plan.ContentType.IsNull() {
 			contentType = "application/octet-stream"
