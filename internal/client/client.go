@@ -189,7 +189,7 @@ func (c *Client) ListBuckets(ctx context.Context) ([]Bucket, error) {
 	if err != nil {
 		return nil, err
 	}
-	defer resp.Body.Close()
+	defer closeBody(resp.Body)
 
 	if resp.StatusCode != http.StatusOK {
 		body, _ := io.ReadAll(resp.Body)
@@ -218,7 +218,7 @@ func (c *Client) GetBucketInfo(ctx context.Context, req GetBucketInfoRequest) (*
 	if err != nil {
 		return nil, err
 	}
-	defer resp.Body.Close()
+	defer closeBody(resp.Body)
 
 	if resp.StatusCode == http.StatusNotFound {
 		return nil, nil
@@ -243,7 +243,7 @@ func (c *Client) CreateBucket(ctx context.Context, req CreateBucketRequest) (*Bu
 	if err != nil {
 		return nil, err
 	}
-	defer resp.Body.Close()
+	defer closeBody(resp.Body)
 
 	if resp.StatusCode != http.StatusOK && resp.StatusCode != http.StatusCreated {
 		body, _ := io.ReadAll(resp.Body)
@@ -267,7 +267,7 @@ func (c *Client) UpdateBucket(ctx context.Context, bucketID string, req UpdateBu
 	if err != nil {
 		return nil, err
 	}
-	defer resp.Body.Close()
+	defer closeBody(resp.Body)
 
 	if resp.StatusCode != http.StatusOK {
 		body, _ := io.ReadAll(resp.Body)
@@ -291,7 +291,7 @@ func (c *Client) DeleteBucket(ctx context.Context, req DeleteBucketRequest) erro
 	if err != nil {
 		return err
 	}
-	defer resp.Body.Close()
+	defer closeBody(resp.Body)
 
 	if resp.StatusCode != http.StatusOK && resp.StatusCode != http.StatusNoContent {
 		body, _ := io.ReadAll(resp.Body)
@@ -312,7 +312,7 @@ func (c *Client) AddBucketAlias(ctx context.Context, bucketID, alias string) err
 	if err != nil {
 		return err
 	}
-	defer resp.Body.Close()
+	defer closeBody(resp.Body)
 
 	if resp.StatusCode != http.StatusOK && resp.StatusCode != http.StatusNoContent {
 		body, _ := io.ReadAll(resp.Body)
@@ -333,7 +333,7 @@ func (c *Client) RemoveBucketAlias(ctx context.Context, bucketID, alias string) 
 	if err != nil {
 		return err
 	}
-	defer resp.Body.Close()
+	defer closeBody(resp.Body)
 
 	if resp.StatusCode != http.StatusOK && resp.StatusCode != http.StatusNoContent {
 		body, _ := io.ReadAll(resp.Body)
@@ -349,7 +349,7 @@ func (c *Client) AllowBucketKey(ctx context.Context, req BucketKeyPermRequest) (
 	if err != nil {
 		return nil, err
 	}
-	defer resp.Body.Close()
+	defer closeBody(resp.Body)
 
 	if resp.StatusCode != http.StatusOK {
 		body, _ := io.ReadAll(resp.Body)
@@ -370,7 +370,7 @@ func (c *Client) DenyBucketKey(ctx context.Context, req BucketKeyPermRequest) (*
 	if err != nil {
 		return nil, err
 	}
-	defer resp.Body.Close()
+	defer closeBody(resp.Body)
 
 	if resp.StatusCode != http.StatusOK {
 		body, _ := io.ReadAll(resp.Body)
@@ -391,7 +391,7 @@ func (c *Client) CreateKey(ctx context.Context, req CreateKeyRequest) (*AccessKe
 	if err != nil {
 		return nil, err
 	}
-	defer resp.Body.Close()
+	defer closeBody(resp.Body)
 
 	if resp.StatusCode != http.StatusOK && resp.StatusCode != http.StatusCreated {
 		body, _ := io.ReadAll(resp.Body)
@@ -412,7 +412,7 @@ func (c *Client) ImportKey(ctx context.Context, req ImportKeyRequest) (*AccessKe
 	if err != nil {
 		return nil, err
 	}
-	defer resp.Body.Close()
+	defer closeBody(resp.Body)
 
 	if resp.StatusCode != http.StatusOK && resp.StatusCode != http.StatusCreated {
 		body, _ := io.ReadAll(resp.Body)
@@ -435,7 +435,7 @@ func (c *Client) GetKeyInfo(ctx context.Context, req GetKeyInfoRequest) (*Access
 	if err != nil {
 		return nil, err
 	}
-	defer resp.Body.Close()
+	defer closeBody(resp.Body)
 
 	if resp.StatusCode == http.StatusNotFound {
 		return nil, nil
@@ -462,7 +462,7 @@ func (c *Client) DeleteKey(ctx context.Context, req DeleteKeyRequest) error {
 	if err != nil {
 		return err
 	}
-	defer resp.Body.Close()
+	defer closeBody(resp.Body)
 
 	if resp.StatusCode != http.StatusOK && resp.StatusCode != http.StatusNoContent {
 		body, _ := io.ReadAll(resp.Body)
@@ -470,4 +470,8 @@ func (c *Client) DeleteKey(ctx context.Context, req DeleteKeyRequest) error {
 	}
 
 	return nil
+}
+
+func closeBody(body io.ReadCloser) {
+	_ = body.Close()
 }
