@@ -14,11 +14,11 @@ Terraform provider for managing Garage S3 buckets and objects
 ```terraform
 provider "garage" {
   endpoints = {
-    admin = "http://localhost:3903"  # Admin API
-    s3    = "http://localhost:3900"  # S3 API
+    admin = "http://localhost:3903" # Admin API
+    s3    = "http://localhost:3900" # S3 API
   }
   token      = "admin-token"
-  access_key = "GK123..."  # S3 access key
+  access_key = "GK123..."     # S3 access key
   secret_key = "secret123..." # S3 secret key
 }
 ```
@@ -30,11 +30,11 @@ provider "garage" {
 
 - `access_key` (String, Sensitive) S3 access key for object operations. Can also be set via GARAGE_ACCESS_KEY environment variable
 - `endpoint` (String, Deprecated) (Deprecated) Admin API endpoint. Use 'endpoints.admin' instead.
-- `endpoints` (Block, Optional) Garage API endpoints configuration (see [below for nested schema](#nestedblock--endpoints))
+- `endpoints` (Attributes) Garage API endpoints configuration (see [below for nested schema](#nestedatt--endpoints))
 - `secret_key` (String, Sensitive) S3 secret key for object operations. Can also be set via GARAGE_SECRET_KEY environment variable
 - `token` (String, Sensitive) Admin API token for Garage cluster management
 
-<a id="nestedblock--endpoints"></a>
+<a id="nestedatt--endpoints"></a>
 ### Nested Schema for `endpoints`
 
 Optional:

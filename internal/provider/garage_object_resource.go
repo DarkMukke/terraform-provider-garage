@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package provider
 
 import (
@@ -6,7 +9,6 @@ import (
 	"io"
 	"os"
 	"strings"
-	"unsafe"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/credentials"
@@ -133,12 +135,8 @@ func (r *GarageObjectResource) Create(ctx context.Context, req resource.CreateRe
 			return
 		}
 		defer func(file *os.File) {
-			err := file.Close()
-			if err != nil {
-
-			}
+			_ = file.Close()
 		}(file)
-		body = file
 
 		if plan.ContentType.IsNull() {
 			contentType = "application/octet-stream"
@@ -208,7 +206,7 @@ func (r *GarageObjectResource) Read(ctx context.Context, req resource.ReadReques
 
 func (r *GarageObjectResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
 	// Treat update as delete + create
-	r.Create(ctx, resource.CreateRequest{Plan: req.Plan}, (*resource.CreateResponse)(unsafe.Pointer(resp)))
+	r.Create(ctx, resource.CreateRequest{Plan: req.Plan}, (*resource.CreateResponse)(resp))
 }
 
 func (r *GarageObjectResource) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {

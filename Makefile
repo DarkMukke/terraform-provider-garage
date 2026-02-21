@@ -17,4 +17,7 @@ install: build
 test:
 	go test -v ./...
 
-.PHONY: build install test
+generate:
+    go generate ./...
+
+.PHONY: build install test generate

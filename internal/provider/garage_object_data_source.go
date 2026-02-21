@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package provider
 
 import (
@@ -146,10 +149,7 @@ func (d *GarageObjectDataSource) Read(ctx context.Context, req datasource.ReadRe
 		return
 	}
 	defer func(Body io.ReadCloser) {
-		err := Body.Close()
-		if err != nil {
-
-		}
+		_ = Body.Close()
 	}(getOutput.Body)
 
 	// Read object body
