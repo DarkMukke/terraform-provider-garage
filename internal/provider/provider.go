@@ -76,9 +76,8 @@ func (p *GarageProvider) Schema(ctx context.Context, req provider.SchemaRequest,
 				Sensitive:   true,
 				Description: "S3 secret key for object operations. Can also be set via GARAGE_SECRET_KEY environment variable",
 			},
-		},
-		Blocks: map[string]schema.Block{
-			"endpoints": schema.SingleNestedBlock{ //
+			"endpoints": schema.SingleNestedAttribute{
+				Optional:    true,
 				Description: "Garage API endpoints configuration",
 				Attributes: map[string]schema.Attribute{
 					"admin": schema.StringAttribute{
